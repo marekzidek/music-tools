@@ -82,7 +82,7 @@ def transpose_to_C_or_A(score):
         final = sNew.transpose(i) 
 
     elif k.mode == "major":
-        
+
         k.tonic.octave = k.tonic.implicitOctave
         c = pitch.Pitch('C')
         c.octave = c.implicitOctave
@@ -103,8 +103,12 @@ def main(args):
 
     for name in sorted(os.listdir(path)):
         if name[-4:] in ('.mid', '.MID'):
-            score = music21.converter.parse(os.path.join(path, name))
 
+            try:
+                score = music21.converter.parse(os.path.join(path, name))
+            except:
+                continue
+                
             transposed = transpose_to_C_or_A(score)
             transposed.write("midi", "transposed_" + name)
             
