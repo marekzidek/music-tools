@@ -1,9 +1,9 @@
 from __future__ import print_function
 import midi
 import argparse
-
 import os
 
+# This script is used for analysis of a dataset and prints out the min and max span note-span of it.
 
 def build_argument_parser():
     parser = argparse.ArgumentParser(description=__doc__, add_help=True,
