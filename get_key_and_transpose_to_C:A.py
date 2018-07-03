@@ -38,8 +38,10 @@ def compute_average_pitch(pattern):
     
     return fe.extract().vector
 
-def assume_octave_of_key(pattern, key_list):
-    proximity = compute_average_pitch(pattern)[0]
+# (pattern, [options of octaves in midi nunmbers], interval -
+# for which we need to move the pattern to be in C or A in some octave)
+def assume_octave_of_key(pattern, key_list, interval):
+    proximity = compute_average_pitch(pattern)[0] + interval
 
     # No need for modified binary search
     for a, b in zip(key_list, key_list[1:]):
@@ -58,8 +60,8 @@ def assume_octave_of_key(pattern, key_list):
 
 
 
-c_proximity_list = [48, 60, 72, 84, 96]
-a_proximity_list = [57, 69, 81, 93, 105]
+c_proximity_list = [36, 48, 60, 72, 84, 96, 108]
+a_proximity_list = [33, 45, 57, 69, 81, 93, 105]
 
 def transpose_to_C_or_A(score):
 
@@ -79,23 +81,78 @@ def transpose_to_C_or_A(score):
         a_pitch.midi = assume_octave_of_key(sNew, a_proximity_list)
 
         i = interval.Interval(a_pitch, a)
-        final = sNew.transpose(i) 
+        final = sNew.transpose(i)
 
     elif k.mode == "major":
 
         k.tonic.octave = k.tonic.implicitOctave
+
+        # Here, we aim to find the interval between C and score key if we take an assumption
+        # that they are both in octave 4, however if we transpose score key by that interval,
+        # it still stays in its own octave, but C
         c = pitch.Pitch('C')
         c.octave = c.implicitOctave
+
+        # Here, inteval is denoted as some musical strings
+        # To make it more understandable, use method .cents on the object interval
         i = interval.Interval(k.tonic, c)
-        sNew = score.transpose(i)
+
+        # Here
+        # sNew = score.transpose(i)
 
         c_pitch = pitch.Pitch('C4')
-        c_pitch.midi = assume_octave_of_key(sNew, c_proximity_list)
+        c_pitch.midi = assume_octave_of_key(sNew, c_proximity_list, i.cents/100)
 
-        i = interval.Interval(c_pitch, c)
-        final = sNew.transpose(i)
+        final_i = interval.Interval(c_pitch, c).cents + i.cents
 
-    return final
+    return final_i/100
+
+def fast_transpose(file, interval):
+    pattern = midi.read_midifile(midifile)
+    remainingTime = [track[0].tick for track in pattern]
+    positionInTrack = [0 for track in pattern]
+
+    noteMatrix.append(state)
+
+    while not (all(t is None for t in remainingTime)):
+
+        # for all tracks in current tick
+        for i in range(len(remainingTime)):
+            # for all notes current tick and track
+            while remainingTime[i] == 0:
+
+                track = pattern[i]
+                pos = positionInTrack[i]
+
+                event = track[pos]
+                if isinstance(event, midi.NoteEvent):
+                    try:
+                        event.pitch += interval
+                try:
+                    remainingTime[i] = track[pos + 1].tick
+
+                # a bit of a bad practice here, but it's not the main time consuming part of the program
+                except IndexError:
+                    print("Takovehle bylo icko pri bad practicu cislo 1 ve fast transpose")
+                    print(i)
+                    remainingTime[i] = None
+
+                try:
+                    positionInTrack[i] += 1
+
+                except IndexError:
+                    print("Takovehle bylo icko pri bad practicu cislo 2 ve fast transpose")
+                    print(i)
+                    remainingTime[i] = None
+
+            if remainingTime[i] is not None:
+                remainingTime[i] -= 1
+
+        if all(t is None for t in remainingTime):
+            break
+
+    return pattern
+
 
 def main(args):
 
@@ -103,17 +160,19 @@ def main(args):
 
     for name in sorted(os.listdir(path)):
         if name[-4:] in ('.mid', '.MID'):
-
+            filename = os.path(join(path, name))
             try:
-                score = music21.converter.parse(os.path.join(path, name))
+                score = music21.converter.parse(filename)
             except:
                 continue
                 
-            transposed = transpose_to_C_or_A(score)
-            transposed.write("midi", "transposed_" + name)
+            half_tones = transpose_to_C_or_A(score)
+            transposed = fast_transpose(filename, half_tones)
+            if not filename.endswith('mid'):
+                if not filename.endswith('midi'):
+                    filename += '.mid'
+                    midi.write_midifile(filename, transposed)
             
-            #score.write("midi", "identity_" + name)
-
 
 if __name__ == '__main__':
     parser = build_argument_parser()
@@ -125,8 +184,3 @@ if __name__ == '__main__':
         logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
     main(args)
-
-
-
-
-	
