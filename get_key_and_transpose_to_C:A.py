@@ -67,22 +67,8 @@ def transpose_to_C_or_A(score):
 
     k = score.analyze('key')
 
-    ## Transpose to A or C ##
+    ## Transpose to A4 or C4 ##
     
-    if k.mode == "minor":
-
-        k.tonic.octave = k.tonic.implicitOctave
-        a = pitch.Pitch('A')
-        a.octave = a.implicitOctave
-        i = interval.Interval(k.tonic, a)
-        sNew = score.transpose(i)
-
-        a_pitch = pitch.Pitch('A')
-        a_pitch.midi = assume_octave_of_key(sNew, a_proximity_list)
-
-        i = interval.Interval(a_pitch, a)
-        final = sNew.transpose(i)
-
     elif k.mode == "major":
 
         k.tonic.octave = k.tonic.implicitOctave
@@ -97,13 +83,29 @@ def transpose_to_C_or_A(score):
         # To make it more understandable, use method .cents on the object interval
         i = interval.Interval(k.tonic, c)
 
-        # Here
+        #### keep the next line commented: This is what we would normaly want
         # sNew = score.transpose(i)
+        #### and then find the corresponding octave and normalize into C4
+        #### However, we will just remember the interval and add it to the normalizing interval
 
         c_pitch = pitch.Pitch('C4')
-        c_pitch.midi = assume_octave_of_key(sNew, c_proximity_list, i.cents/100)
+        c_pitch.midi = assume_octave_of_key(score, c_proximity_list, i.cents/100)
 
         final_i = interval.Interval(c_pitch, c).cents + i.cents
+
+    if k.mode == "minor":
+
+        # This is basically a duplicate from k.mode major
+        # with slight differences
+        k.tonic.octave = k.tonic.implicitOctave
+        a = pitch.Pitch('A')
+        a.octave = a.implicitOctave
+        i = interval.Interval(k.tonic, a)
+        a_pitch = pitch.Pitch('A4')
+        a_pitch.midi = assume_octave_of_key(score, a_proximity_list, i.cents/100)
+        final_i = interval.Interval(a_pitch, a).cents + i.cents
+
+    
 
     return final_i/100
 
