@@ -111,7 +111,11 @@ def transpose_to_C_or_A(score):
     return final_i/100
 
 def fast_transpose(file, interval):
-    pattern = midi.read_midifile(file)
+    try:
+        pattern = midi.read_midifile(file)
+    except:
+        return None
+
     remainingTime = [track[0].tick for track in pattern]
     positionInTrack = [0 for track in pattern]
 
@@ -179,11 +183,12 @@ def main(args):
             
             half_tones = transpose_to_C_or_A(score)
             transposed = fast_transpose(filename, half_tones)
-            if not name.endswith('mid'):
-                if not name.endswith('midi'):
-                    name += '.mid'
-            print("writing {}".format(os.path.join(output_path, name)))
-            midi.write_midifile(os.path.join(output_path, name), transposed)
+            if transposed is not None:
+                if not name.endswith('mid'):
+                    if not name.endswith('midi'):
+                        name += '.mid'
+                print("writing {}".format(os.path.join(output_path, name)))
+                midi.write_midifile(os.path.join(output_path, name), transposed)
             
 
 if __name__ == '__main__':
