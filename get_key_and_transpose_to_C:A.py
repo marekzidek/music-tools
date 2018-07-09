@@ -8,21 +8,12 @@ import argparse
 import os
 
 
-###### Over si tady ten score analyzer, jestli bude moct vratit treba F-3 misto F, 
-###### tzn. pouzij takovej ten svuj skript na transpozici dat, jestli ho mas
-
-
-REFERENTIAL_C = 72
-REFERENTIAL_A = 81
-
-
 def build_argument_parser():
     parser = argparse.ArgumentParser(description=__doc__, add_help=True,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('--dataset', action='store', required=True,
                         help='Dataset to analyze')
-
 
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Turn on INFO messages.')
@@ -38,9 +29,20 @@ def compute_average_pitch(pattern):
     
     return fe.extract().vector
 
-# (pattern, [options of octaves in midi nunmbers], interval -
-# for which we need to move the pattern to be in C or A in some octave)
+
 def assume_octave_of_key(pattern, key_list, interval):
+    """Given a pattern, finds the octave of a key that
+    the pattern is played in.
+
+    Args:
+        pattern: loaded midi score to analyze
+        key_list: list of referential key-dependent octave pitches
+        interval: an interval that should be added to pattern to be in
+            respective referential key (for our use case C or A)
+
+    Returns:
+        The return value. Midi number of a respective key in the found octave
+    """
     proximity = compute_average_pitch(pattern)[0] + interval
 
     # No need for modified binary search
@@ -59,7 +61,6 @@ def assume_octave_of_key(pattern, key_list, interval):
     return proximity
 
 
-
 c_proximity_list = [36, 48, 60, 72, 84, 96, 108]
 a_proximity_list = [33, 45, 57, 69, 81, 93, 105]
 
@@ -69,7 +70,7 @@ def transpose_to_C_or_A(score):
 
     ## Transpose to A4 or C4 ##
     
-    elif k.mode == "major":
+    if k.mode == "major":
 
         k.tonic.octave = k.tonic.implicitOctave
 
@@ -83,7 +84,7 @@ def transpose_to_C_or_A(score):
         # To make it more understandable, use method .cents on the object interval
         i = interval.Interval(k.tonic, c)
 
-        #### keep the next line commented: This is what we would normaly want
+        #### This is what we would normaly want:
         # sNew = score.transpose(i)
         #### and then find the corresponding octave and normalize into C4
         #### However, we will just remember the interval and add it to the normalizing interval
@@ -93,7 +94,7 @@ def transpose_to_C_or_A(score):
 
         final_i = interval.Interval(c_pitch, c).cents + i.cents
 
-    if k.mode == "minor":
+    elif k.mode == "minor":
 
         # This is basically a duplicate from k.mode major
         # with slight differences
@@ -110,11 +111,9 @@ def transpose_to_C_or_A(score):
     return final_i/100
 
 def fast_transpose(file, interval):
-    pattern = midi.read_midifile(midifile)
+    pattern = midi.read_midifile(file)
     remainingTime = [track[0].tick for track in pattern]
     positionInTrack = [0 for track in pattern]
-
-    noteMatrix.append(state)
 
     while not (all(t is None for t in remainingTime)):
 
@@ -129,22 +128,20 @@ def fast_transpose(file, interval):
                 event = track[pos]
                 if isinstance(event, midi.NoteEvent):
                     try:
-                        event.pitch += interval
+                        event.pitch += int(interval)
+                    except:
+                        print("Error when transposing -> please report a bug in deterining the interval")
                 try:
                     remainingTime[i] = track[pos + 1].tick
 
                 # a bit of a bad practice here, but it's not the main time consuming part of the program
                 except IndexError:
-                    print("Takovehle bylo icko pri bad practicu cislo 1 ve fast transpose")
-                    print(i)
                     remainingTime[i] = None
 
                 try:
                     positionInTrack[i] += 1
 
                 except IndexError:
-                    print("Takovehle bylo icko pri bad practicu cislo 2 ve fast transpose")
-                    print(i)
                     remainingTime[i] = None
 
             if remainingTime[i] is not None:
@@ -159,21 +156,34 @@ def fast_transpose(file, interval):
 def main(args):
 
     path = args.dataset
+    print(path)
+    output_path, tail = os.path.split(path)
+
+    # this just for detection of trailing '/' in path
+    if tail == '':
+        output_path, tail = os.path.split(output_path)
+
+
+    output_path = os.path.join(output_path, 'output')
+
+    if not os.path.exists(output_path):
+        os.makedirs(output_path) 
 
     for name in sorted(os.listdir(path)):
         if name[-4:] in ('.mid', '.MID'):
-            filename = os.path(join(path, name))
+            filename = os.path.join(path, name)
             try:
                 score = music21.converter.parse(filename)
             except:
                 continue
-                
+            
             half_tones = transpose_to_C_or_A(score)
             transposed = fast_transpose(filename, half_tones)
-            if not filename.endswith('mid'):
-                if not filename.endswith('midi'):
-                    filename += '.mid'
-                    midi.write_midifile(filename, transposed)
+            if not name.endswith('mid'):
+                if not name.endswith('midi'):
+                    name += '.mid'
+            print("writing {}".format(os.path.join(output_path, name)))
+            midi.write_midifile(os.path.join(output_path, name), transposed)
             
 
 if __name__ == '__main__':
