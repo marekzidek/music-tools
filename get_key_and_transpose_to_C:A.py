@@ -106,9 +106,14 @@ def transpose_to_C_or_A(score):
         a_pitch.midi = assume_octave_of_key(score, a_proximity_list, i.cents/100)
         final_i = interval.Interval(a_pitch, a).cents + i.cents
 
-    
 
-    return final_i/100
+    # Constant determined by trial and error with known atonal pieces and known tonal pieces
+    if k.tonalCertainty() > 0.800:
+        return final_i/100, k.mode
+
+    else:
+        return final_i/100, "atonal"
+
 
 def fast_transpose(file, interval):
     try:
@@ -168,7 +173,9 @@ def main(args):
         output_path, tail = os.path.split(output_path)
 
 
-    output_path = os.path.join(output_path, 'output')
+    major_path = os.path.join(output_path, 'major_output')
+    minor_path = os.path.join(output_path, 'minor_output')
+    atonal_path = os.path.join(output_path, 'atonal_output')
 
     if not os.path.exists(output_path):
         os.makedirs(output_path) 
@@ -181,15 +188,22 @@ def main(args):
             except:
                 continue
             
-            half_tones = transpose_to_C_or_A(score)
-            transposed = fast_transpose(filename, half_tones)
+            semitones, scale = transpose_to_C_or_A(score)
+            transposed = fast_transpose(filename, semitones)
             if transposed is not None:
                 if not name.endswith('mid'):
                     if not name.endswith('midi'):
                         name += '.mid'
                 print("writing {}".format(os.path.join(output_path, name)))
-                midi.write_midifile(os.path.join(output_path, name), transposed)
-            
+
+                if scale == "major":
+                    midi.write_midifile(os.path.join(major_path, name), transposed)
+
+                if scale == "minor":
+                    midi.write_midifile(os.path.join(minor_path, name), transposed)
+                else:
+                    midi.write_midifile(os.path.join(atonal_path, name), transposed)
+
 
 if __name__ == '__main__':
     parser = build_argument_parser()
