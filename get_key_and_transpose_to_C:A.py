@@ -165,20 +165,15 @@ def fast_transpose(file, interval):
 def main(args):
 
     path = args.dataset
-    print(path)
-    output_path, tail = os.path.split(path)
-
-    # this just for detection of trailing '/' in path
-    if tail == '':
-        output_path, tail = os.path.split(output_path)
 
 
     major_path = os.path.join(output_path, 'major_output')
     minor_path = os.path.join(output_path, 'minor_output')
     atonal_path = os.path.join(output_path, 'atonal_output')
 
-    if not os.path.exists(output_path):
-        os.makedirs(output_path) 
+    for i in [major_path, minor_path, atonal_path]
+        if not os.path.exists(i):
+            os.makedirs(i) 
 
     for name in sorted(os.listdir(path)):
         if name[-4:] in ('.mid', '.MID'):
