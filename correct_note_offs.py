@@ -69,7 +69,7 @@ if __name__ == "__main__":
     for file in sorted(os.listdir(args.i)):
 
 
-        pattern = correct(os.path.join(args.a, file))
+        pattern = correct(os.path.join(args.i, file))
 
         filename = os.path.join(args.o, file)
 
