@@ -38,8 +38,9 @@ def correct(midifile):
     pattern = midi.read_midifile(midifile)
 
     new_step = False
-    steps = 1
     for track in pattern:
+        steps = 1
+        
         for i, event in enumerate(track):
 
             if event.tick > 0:
