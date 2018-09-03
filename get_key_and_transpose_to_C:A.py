@@ -171,7 +171,7 @@ def main(args):
     minor_path = os.path.join(output_path, 'minor_output')
     atonal_path = os.path.join(output_path, 'atonal_output')
 
-    for i in [major_path, minor_path, atonal_path]
+    for i in [major_path, minor_path, atonal_path]:
         if not os.path.exists(i):
             os.makedirs(i) 
 
