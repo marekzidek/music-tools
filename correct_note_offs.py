@@ -38,8 +38,9 @@ def correct(midifile):
     pattern = midi.read_midifile(midifile)
 
     new_step = False
-    steps = 1
     for track in pattern:
+        steps = 1
+        
         for i, event in enumerate(track):
 
             if event.tick > 0:
@@ -69,7 +70,7 @@ if __name__ == "__main__":
     for file in sorted(os.listdir(args.i)):
 
 
-        pattern = correct(os.path.join(args.a, file))
+        pattern = correct(os.path.join(args.i, file))
 
         filename = os.path.join(args.o, file)
 
