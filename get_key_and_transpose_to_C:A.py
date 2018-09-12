@@ -1,4 +1,6 @@
 from __future__ import print_function
+import fnmatch
+import glob
 import datetime
 import subprocess
 import music21
@@ -181,17 +183,25 @@ def main(args):
     process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE, shell=True)
     output, error = process.communicate()
     output = output.decode('utf-8')
+    
+            
 
     with open("{}.log".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")), "w") as log_file:
         for i, name in enumerate(output.split("\n")):
             if os.path.isfile(name):
                 if name[-4:] in ('.mid', '.MID'):
+
+                    unprefixed = os.path.relpath(name,args.dataset) 
+                    unpostfixed, filename = os.path.split(unprefixed)
+                    # Check if already converted
+                    if len(glob.glob(os.path.join("normalized", unpostfixed, "*", filename))) > 0:
+                        continue 
                     try:
                         print(name)
                         score = music21.converter.parse(name)
 
                     except:
-                        print("something bad happpened")
+                        print("music21 library couldn't parse this one")
                         continue
 
                     semitones, scale = transpose_to_C_or_A(score)
@@ -199,8 +209,6 @@ def main(args):
                     if transposed is not None:
                         print("writing {}".format(os.path.join(output_path, name)))
                         try:                
-                            unprefixed = os.path.relpath(name,args.dataset) 
-                            unpostfixed, filename = os.path.split(unprefixed)
                             if scale == "major":
                                 final_path = os.path.join("normalized", unpostfixed, "major", filename) 
                                 write_midifile(final_path, transposed) 
